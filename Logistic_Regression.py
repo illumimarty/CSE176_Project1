@@ -18,5 +18,7 @@ x_digit1 = train_fea1[6741:12699]
 x_digit7 = train_fea1[42276:48127]
 train_x = pd.concat([x_digit1, x_digit7])
 
-model = LogisticRegression(solver='lbfgs')
+# Since we are required to use L2 regularization, both version of the following model work 
+model = LogisticRegression(solver='newton-cg')
+#model = LogisticRegression(solver='sag', max_iter=600)
 model.fit(train_x, train_y.values.ravel())
