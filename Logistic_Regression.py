@@ -17,7 +17,7 @@ def getDigitRange(gnd, digit):
 
 def main(): 
     """Obtaining the data"""
-    print("Getting data")
+    print("Getting data...")
     mnist = loadmat('datasets/MNISTmini.mat')
     x_train = np.array(mnist['train_fea1'])
     y_train = np.array(mnist['train_gnd1'])
@@ -46,8 +46,8 @@ def main():
 
     """Creating, fitting, and making predictions with the model"""
     ## comment out models to test out
-    # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000)
-    model = LogisticRegression(solver='sag', max_iter=1000)
+    model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000)
+    # model = LogisticRegression(solver='sag', max_iter=1000)
 
     print("Fitting model...")
     model.fit(x_train, y_train)
@@ -62,8 +62,8 @@ def main():
     digit2gnd = y_test[digit2idx].flatten() 
 
     x_test = np.concatenate((digit1test, digit2test))
-
     y_test = np.concatenate((digit1gnd, digit2gnd))
+
     print("Making predictions...")
     y_pred = model.predict(x_test)
 
