@@ -7,13 +7,19 @@ from sklearn import metrics
 from sklearn.metrics import confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 
-## creating functions to clean up code
-# def getTrainData(fea, dng, digit):
-#
-def getDigitRange(gnd, digit):
-    digitrange = np.where(np.logical_and(gnd > digit-1, gnd < digit+1))
-    digitidx = digitrange[0]
-    return digitidx
+def getDigitRange(gnd, digit):      # get indexes of specified digit in MNISTmini
+    digit_range = np.where(np.logical_and(gnd > digit-1, gnd < digit+1))
+    digit_idx = digit_range[0]
+    return digit_idx
+
+def getDigitFea(digit, fea, gnd):   # extract features based on indexes
+    digit_range = getDigitRange(gnd, digit)
+    return fea[digit_range]
+
+def getDigitGnd(digit, gnd):        # extract ground truth based on indexes
+    digit_range = getDigitRange(gnd, digit)
+    return gnd[digit_range].flatten()
+
 
 def main(): 
     """Obtaining the data"""
@@ -31,14 +37,11 @@ def main():
     d1 = digit1 + 1
     d2 = digit2 + 1
 
-    """Obtaining subset of data for digits 4 and 7"""
-    digit1idx = getDigitRange(y_train, d1)                              # list of indexes
-    digit1train = x_train[digit1idx]                                    # extract features based on indexes
-    digit1gnd = y_train[digit1idx].flatten()                            # extract ground trurth based on indexes
-
-    digit2idx = getDigitRange(y_train, d2)
-    digit2train = x_train[digit2idx]
-    digit2gnd = y_train[digit2idx].flatten()
+    """Obtaining subset of data for digits 4 and 7"""                          
+    digit1train = getDigitFea(d1, x_train, y_train)
+    digit2train = getDigitFea(d2, x_train, y_train)
+    digit1gnd = getDigitGnd(d1, y_train)
+    digit2gnd = getDigitGnd(d2, y_train)
 
     """Creating training set"""
     x_train = np.concatenate((digit1train, digit2train))
@@ -53,13 +56,10 @@ def main():
     model.fit(x_train, y_train)
 
     ## Creating the test/validation sets
-    digit1idx = getDigitRange(y_test, d1)                              
-    digit1test = x_test[digit1idx]
-    digit1gnd = y_test[digit1idx].flatten() 
-
-    digit2idx = getDigitRange(y_test, d2)                                      
-    digit2test = x_test[digit2idx]
-    digit2gnd = y_test[digit2idx].flatten() 
+    digit1test = getDigitFea(d1, x_test, y_test)
+    digit2test = getDigitFea(d2, x_test, y_test)
+    digit1gnd = getDigitGnd(d1, y_test)
+    digit2gnd = getDigitGnd(d2, y_test)
 
     x_test = np.concatenate((digit1test, digit2test))
     y_test = np.concatenate((digit1gnd, digit2gnd))
