@@ -1,27 +1,22 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
+from clean import *
 from scipy.io import loadmat
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 from sklearn.metrics import confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 
-def getDigitRange(gnd, digit):      # get indexes of specified digit in MNISTmini
-    digit_range = np.where(np.logical_and(gnd > digit-1, gnd < digit+1))
-    digit_idx = digit_range[0]
-    return digit_idx
-
-def getDigitFea(digit, fea, gnd):   # extract features based on indexes
-    digit_range = getDigitRange(gnd, digit)
-    return fea[digit_range]
-
-def getDigitGnd(digit, gnd):        # extract ground truth based on indexes
-    digit_range = getDigitRange(gnd, digit)
-    return gnd[digit_range].flatten()
-
-
 def main(): 
+
+    ## EDIT THESE 2 VARS TO CHANGE DIGIT CLASSES ##
+    digit1 = 4
+    digit2 = 7
+
+    d1 = digit1 + 1
+    d2 = digit2 + 1
+
     """Obtaining the data"""
     print("Getting data...")
     mnist = loadmat('datasets/MNISTmini.mat')
@@ -29,13 +24,6 @@ def main():
     y_train = np.array(mnist['train_gnd1'])
     x_test = np.array(mnist['test_fea1'])
     y_test = np.array(mnist['test_gnd1'])
-
-    ## EDIT THESE 2 VARS TO CHANGE DIGIT CLASSES ##
-    digit1 = 4
-    digit2 = 9
-
-    d1 = digit1 + 1
-    d2 = digit2 + 1
 
     """Obtaining subset of data for digits 4 and 7"""                          
     digit1train = getDigitFea(d1, x_train, y_train)
