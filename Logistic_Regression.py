@@ -6,8 +6,9 @@ from scipy.io import loadmat
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, validation_curve
 import matplotlib.pyplot as plt
+from math import exp
 
 def main(): 
 
@@ -50,88 +51,93 @@ def main():
     dataXtest = np.concatenate((digit1test, digit2test))
     dataYtest = np.concatenate([digit1gnd, digit2gnd])
 
-    """Perform cross-validation on the hyperparameter C"""
-    clist = [round(i,2) for i in np.linspace(1,25,50)]
-    train_acc = []
-    valid_acc = []
-    # print(clist)
-    for i in range(50):
-        print("Model ", i)
-        # comment out models to test out
-        # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
-        model = LogisticRegression(solver='sag', max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
     x_dummy, x_test, y_dummy, y_test = train_test_split(dataXtest, dataYtest, test_size=0.99)
 
+    """Perform cross-validation on the hyperparameter C"""
+    # clist = [round(i,2) for i in np.linspace(0.000001,10,5)]
+    clist = np.logspace(-6,6,15)
+    # train_acc = []
+    # valid_acc = []
+    # # print(clist)
+    # for i in range(50):
+    #     print("Model ", i)
+    #     # comment out models to test out
+    #     # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
+    #     # model = LogisticRegression(solver='sag', max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
+    #     model = LogisticRegression(solver='sag', max_iter=1000, C = clist[i]).fit(x_train, y_train)
 
-    """Creating, fitting, and making predictions with the model"""
-    ## comment out models to test out
-    print("Initializing logreg model...")
-    model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000)
-    # model = LogisticRegression(solver='sag', max_iter=1000)
+    #     preds_train = model.predict(x_train)
+    #     train_acc.append(accuracy_score(y_train, preds_train))
 
-    print("Fitting model to training set...")
-    model.fit(x_train, y_train)
+    #     preds_valid = model.predict(x_valid)
+    #     valid_acc.append(accuracy_score(y_valid, preds_valid))
 
-    print("Making predictions...")
-    y_pred = model.predict(x_train)
+    # plt.plot(clist, train_acc, label="Train")
+    # plt.plot(clist, valid_acc, label="Validation")
+    # plt.legend()
+    # plt.show()
 
-    """Showcasing accuracy via confusion matrix"""
-    cm = confusion_matrix(y_pred, y_train)
-
-    # # print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-    score = metrics.accuracy_score(y_train, y_pred)
-    score = round(score*100, 4)
-    print("Accuracy:", score, "%")
-    # score = model.score(y_train, y_pred)
-
-    ## Start comment
-    labels = [digit1, digit2]
-    fig, ax = plt.subplots()
-    tick_marks = np.arange(len(labels))
-    plt.xticks(tick_marks, labels)
-    plt.yticks(tick_marks, labels)
-    # create heatmap
-    sns.heatmap(pd.DataFrame(cm), annot=True, cmap="YlGnBu", fmt='g')
-    ax.xaxis.set_label_position("top")
-    # plt.title('Confusion matrix', y=1.1)
-    plt.ylabel('True')
-    plt.xlabel('Predicted')
-    all_sample_title = 'Accuracy Score: {0}'.format(score)
-    plt.title(all_sample_title, size=15)
+    model = LogisticRegression(solver="liblinear", max_iter=1000)
+    train_score, test_score = validation_curve(model, x_train, y_train,
+                                            param_name="C",
+                                            param_range=clist,
+                                            scoring="accuracy",
+                                            cv=5)
+    # Calculating mean and standard deviation of training score
+    mean_train_score = np.mean(train_score, axis = 1)
+    # std_train_score = np.std(train_score, axis = 1)
+    
+    # Calculating mean and standard deviation of testing score
+    mean_test_score = np.mean(test_score, axis = 1)
+    # std_test_score = np.std(test_score, axis = 1)
+    
+    # Plot mean accuracy scores for training and testing scores
+    plt.plot(clist, mean_train_score, label = "Training Score", color = 'b')
+    plt.plot(clist, mean_test_score, label = "Cross Validation Score", color = 'g')
+    
+    # Creating the plot
+    plt.title("Validation Curve with Logistic Regression")
+    plt.xlabel("C")
+    plt.ylabel("Accuracy")
+    plt.tight_layout()
+    plt.legend(loc = 'best')
     plt.show()
-    ## End comment
+    # """Creating, fitting, and making predictions with the model"""
+    # ## comment out models to test out
+    # print("Initializing logreg model...")
+    # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000)
+    # # model = LogisticRegression(solver='sag', max_iter=1000)
 
-    # ## start comment
-    # """Visualize misclassified images"""
-    # index = 0
-    # misclassifiedIndexes = []
+    # print("Fitting model to training set...")
+    # model.fit(x_train, y_train)
 
-    # # with open('y_pred.txt', 'w') as f:
-    # #     x = y_pred
-    # #     # print(x[0][1])
-    # #     for item in x:
-    # #         f.write(str(item) + "\n") 
-    # #     f.close()
+    # print("Making predictions...")
+    # y_pred = model.predict(x_train)
 
-    # # with open('y_test.txt', 'w') as f:
-    # #     x = y_test
-    # #     # print(x[0][1])
-    # #     for item in x:
-    # #         f.write(str(item) + "\n") 
-    # #     f.close()
-        
-        preds_train = model.predict(x_train[:7000,:])
-        train_acc.append(accuracy_score(y_train[:7000], preds_train))
+    # """Showcasing accuracy via confusion matrix"""
+    # cm = confusion_matrix(y_pred, y_train)
 
-        preds_valid = model.predict(x_train[7001:,:])
-        valid_acc.append(accuracy_score(y_train[7001:], preds_valid))
+    # # # print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    # score = metrics.accuracy_score(y_train, y_pred)
+    # score = round(score*100, 4)
+    # print("Accuracy:", score, "%")
+    # # score = model.score(y_train, y_pred)
 
-    plt.plot(clist, train_acc, label="Train")
-    plt.plot(clist, valid_acc, label="Validation")
-    plt.legend()
-    plt.show()
-
-    ## End comment
-
+    # ## Start comment
+    # labels = [digit1, digit2]
+    # fig, ax = plt.subplots()
+    # tick_marks = np.arange(len(labels))
+    # plt.xticks(tick_marks, labels)
+    # plt.yticks(tick_marks, labels)
+    # # create heatmap
+    # sns.heatmap(pd.DataFrame(cm), annot=True, cmap="YlGnBu", fmt='g')
+    # ax.xaxis.set_label_position("top")
+    # # plt.title('Confusion matrix', y=1.1)
+    # plt.ylabel('True')
+    # plt.xlabel('Predicted')
+    # all_sample_title = 'Accuracy Score: {0}'.format(score)
+    # plt.title(all_sample_title, size=15)
+    # plt.show()
+    ## End comment 
 if __name__== "__main__":
   main()
