@@ -5,7 +5,7 @@ from clean import *
 from scipy.io import loadmat
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
@@ -42,7 +42,6 @@ def main():
 
     ## Prepping data for test set
     print("Creating tests sets...")
-
     digit1test = getDigitFea(d1, x_test, y_test)
     digit2test = getDigitFea(d2, x_test, y_test)
     digit1gnd = getDigitGnd(d1, y_test)
@@ -51,6 +50,16 @@ def main():
     dataXtest = np.concatenate((digit1test, digit2test))
     dataYtest = np.concatenate([digit1gnd, digit2gnd])
 
+    """Perform cross-validation on the hyperparameter C"""
+    clist = [round(i,2) for i in np.linspace(1,25,50)]
+    train_acc = []
+    valid_acc = []
+    # print(clist)
+    for i in range(50):
+        print("Model ", i)
+        # comment out models to test out
+        # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
+        model = LogisticRegression(solver='sag', max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
     x_dummy, x_test, y_dummy, y_test = train_test_split(dataXtest, dataYtest, test_size=0.99)
 
 
@@ -111,38 +120,18 @@ def main():
     # #         f.write(str(item) + "\n") 
     # #     f.close()
         
-    # # with open('misclf.txt', 'w') as f:
-    # #     i = 0
-    # #     x = list(zip(y_pred, y_test))
-    # #     # print(x[0][1])
-    # #     for predict, label in x:
-    # #         # f.write(str(item) + "\n")
-    # #         i+=1
-    # #         if predict != label:
-    # #             # f.write(str(predict) + "," + str(label)) 
-    # #             f.write(str(i) + "\n")
-    # #     f.close()    
+        preds_train = model.predict(x_train[:7000,:])
+        train_acc.append(accuracy_score(y_train[:7000], preds_train))
 
-    # for label, predict in list(zip(y_pred, y_test)):
-    #     index +=1
-    #     if label != predict: 
-    #         misclassifiedIndexes.append(index)
+        preds_valid = model.predict(x_train[7001:,:])
+        valid_acc.append(accuracy_score(y_train[7001:], preds_valid))
 
-    # # with open('test.txt', 'w') as f:
-    # #     x = misclassifiedIndexes
-    # #     # print(x[0][1])
-    # #     for item in x:
-    # #         f.write(str(item)) 
-    # #     f.close()
+    plt.plot(clist, train_acc, label="Train")
+    plt.plot(clist, valid_acc, label="Validation")
+    plt.legend()
+    plt.show()
 
-    # plt.figure(figsize=(20,4))
-    # for plotIndex, badIndex in enumerate(misclassifiedIndexes[1:5]):
-    #     plt.subplot(1, 5, plotIndex + 1)
-    #     plt.imshow(np.reshape(x_test[badIndex], (10,10)), cmap=plt.cm.gray)
-    #     # plt.title("Predicted: {}, Actual: {}".format(y_test[badIndex], x_test[badIndex]), fontsize = 15)
-    # plt.show()
-
-    # ## End comment
+    ## End comment
 
 if __name__== "__main__":
   main()
