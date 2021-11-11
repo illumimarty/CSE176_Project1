@@ -5,7 +5,7 @@ from clean import *
 from scipy.io import loadmat
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 import matplotlib.pyplot as plt
 
 def main(): 
@@ -37,11 +37,8 @@ def main():
 
     """Creating, fitting, and making predictions with the model"""
     ## comment out models to test out
-    model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000)
+    # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000)
     # model = LogisticRegression(solver='sag', max_iter=1000)
-
-    print("Fitting model...")
-    model.fit(x_train, y_train)
 
     ## Creating the test/validation sets
     digit1test = getDigitFea(d1, x_test, y_test)
@@ -52,83 +49,27 @@ def main():
     x_test = np.concatenate((digit1test, digit2test))
     y_test = np.concatenate((digit1gnd, digit2gnd))
 
-    print("Making predictions...")
-    y_pred = model.predict(x_test)
-
-    """Showcasing accuracy via confusion matrix"""
-    cm = confusion_matrix(y_pred, y_test)
-
-    # print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-    score = model.score(x_test, y_test)
-
-    ## Start comment
-    labels = [digit1, digit2]
-    fig, ax = plt.subplots()
-    tick_marks = np.arange(len(labels))
-    plt.xticks(tick_marks, labels)
-    plt.yticks(tick_marks, labels)
-    # create heatmap
-    sns.heatmap(pd.DataFrame(cm), annot=True, cmap="YlGnBu", fmt='g')
-    ax.xaxis.set_label_position("top")
-    # plt.title('Confusion matrix', y=1.1)
-    plt.ylabel('True')
-    plt.xlabel('Predicted')
-    all_sample_title = 'Accuracy Score: {0}'.format(score)
-    plt.title(all_sample_title, size=15)
-    plt.show()
-    ## End comment
-
-    ## start comment
-    """Visualize misclassified images"""
-    index = 0
-    misclassifiedIndexes = []
-
-    # with open('y_pred.txt', 'w') as f:
-    #     x = y_pred
-    #     # print(x[0][1])
-    #     for item in x:
-    #         f.write(str(item) + "\n") 
-    #     f.close()
-
-    # with open('y_test.txt', 'w') as f:
-    #     x = y_test
-    #     # print(x[0][1])
-    #     for item in x:
-    #         f.write(str(item) + "\n") 
-    #     f.close()
+    """Perform cross-validation on the hyperparameter C"""
+    clist = [round(i,2) for i in np.linspace(1,25,50)]
+    train_acc = []
+    valid_acc = []
+    # print(clist)
+    for i in range(50):
+        print("Model ", i)
+        # comment out models to test out
+        # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
+        model = LogisticRegression(solver='sag', max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
         
-    # with open('misclf.txt', 'w') as f:
-    #     i = 0
-    #     x = list(zip(y_pred, y_test))
-    #     # print(x[0][1])
-    #     for predict, label in x:
-    #         # f.write(str(item) + "\n")
-    #         i+=1
-    #         if predict != label:
-    #             # f.write(str(predict) + "," + str(label)) 
-    #             f.write(str(i) + "\n")
-    #     f.close()    
+        preds_train = model.predict(x_train[:7000,:])
+        train_acc.append(accuracy_score(y_train[:7000], preds_train))
 
-    for label, predict in list(zip(y_pred, y_test)):
-        index +=1
-        if label != predict: 
-            misclassifiedIndexes.append(index)
+        preds_valid = model.predict(x_train[7001:,:])
+        valid_acc.append(accuracy_score(y_train[7001:], preds_valid))
 
-    # with open('test.txt', 'w') as f:
-    #     x = misclassifiedIndexes
-    #     # print(x[0][1])
-    #     for item in x:
-    #         f.write(str(item)) 
-    #     f.close()
-
-    plt.figure(figsize=(20,4))
-    for plotIndex, badIndex in enumerate(misclassifiedIndexes[1:5]):
-        plt.subplot(1, 5, plotIndex + 1)
-        plt.imshow(np.reshape(x_test[badIndex], (10,10)), cmap=plt.cm.gray)
-        # plt.title("Predicted: {}, Actual: {}".format(y_test[badIndex], x_test[badIndex]), fontsize = 15)
+    plt.plot(clist, train_acc, label="Train")
+    plt.plot(clist, valid_acc, label="Validation")
+    plt.legend()
     plt.show()
-
-    ## End comment
 
 if __name__== "__main__":
   main()
