@@ -54,29 +54,9 @@ def main():
     x_dummy, x_test, y_dummy, y_test = train_test_split(dataXtest, dataYtest, test_size=0.99)
 
     """Perform cross-validation on the hyperparameter C"""
-    # clist = [round(i,2) for i in np.linspace(0.000001,10,5)]
-    clist = np.logspace(-6,6,15)
-    # train_acc = []
-    # valid_acc = []
-    # # print(clist)
-    # for i in range(50):
-    #     print("Model ", i)
-    #     # comment out models to test out
-    #     # model = LogisticRegression(solver='liblinear', random_state=0, max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
-    #     # model = LogisticRegression(solver='sag', max_iter=1000, C = clist[i]).fit(x_train[:7000,:], y_train[:7000])
-    #     model = LogisticRegression(solver='sag', max_iter=1000, C = clist[i]).fit(x_train, y_train)
+    clist = np.logspace(-6,-3.75,20)
 
-    #     preds_train = model.predict(x_train)
-    #     train_acc.append(accuracy_score(y_train, preds_train))
-
-    #     preds_valid = model.predict(x_valid)
-    #     valid_acc.append(accuracy_score(y_valid, preds_valid))
-
-    # plt.plot(clist, train_acc, label="Train")
-    # plt.plot(clist, valid_acc, label="Validation")
-    # plt.legend()
-    # plt.show()
-
+    ## ADD PARAMETERS HERE
     model = LogisticRegression(solver="liblinear", max_iter=1000)
     train_score, test_score = validation_curve(model, x_train, y_train,
                                             param_name="C",
@@ -85,11 +65,9 @@ def main():
                                             cv=5)
     # Calculating mean and standard deviation of training score
     mean_train_score = np.mean(train_score, axis = 1)
-    # std_train_score = np.std(train_score, axis = 1)
     
     # Calculating mean and standard deviation of testing score
     mean_test_score = np.mean(test_score, axis = 1)
-    # std_test_score = np.std(test_score, axis = 1)
     
     # Plot mean accuracy scores for training and testing scores
     plt.plot(clist, mean_train_score, label = "Training Score", color = 'b')
@@ -102,6 +80,8 @@ def main():
     plt.tight_layout()
     plt.legend(loc = 'best')
     plt.show()
+
+
     # """Creating, fitting, and making predictions with the model"""
     # ## comment out models to test out
     # print("Initializing logreg model...")
