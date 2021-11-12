@@ -1,21 +1,24 @@
-# import pandas as pd
 import numpy as np
-# import seaborn as sns
-from clean import *
-from scipy.io import loadmat
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import metrics
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
-from sklearn.model_selection import train_test_split, validation_curve
-import matplotlib.pyplot as plt
-from math import exp
 import time
 import random
 import datetime
+import matplotlib.pyplot as plt
+from clean import *
+from scipy.io import loadmat
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from sklearn.model_selection import train_test_split, validation_curve
 
-random.seed(68)
+### CSE 176-01 - Fall 2021 Project1 - Random Forest Binary Classification on MNISTmini digits 4 and 7
+### Andy Alvarenga, Moises Limon, Marthen Nodado, Ivan Palacios
+
+# random.seed(68)
 
 def main(): 
+    """USER INPUT"""
+    ## 0 - 5-fold cross-validation and adjusting hyperparameters
+    ## 1 - Determining avg testing accuracy
+    case = 1
 
     ## EDIT THESE 2 VARS TO CHANGE DIGIT CLASSES ##
     digit1 = 4
@@ -58,151 +61,66 @@ def main():
 
     x_dummy, x_test, y_dummy, y_test = train_test_split(dataXtest, dataYtest, test_size=0.99)
 
-    # """Perform cross-validation on the hyperparameter C"""
-    # print("Performing cross-validation...")
-    # depthList = np.linspace(5, 100, 10)
-    # # clist = np.linspace(1,-1, 20)
-    # # clist = np.logsp
+    if case == 0:
+        """Perform cross-validation on the hyperparameter C"""
+        crossValidation(x_train, y_train)
 
-    # ## ADD PARAMETERS HERE
-    # model = RandomForestClassifier()
-    # start_time = time.time()
-    # now = datetime.now()
-    # print("Cross-validation START:", now.strftime("%H:%M"))
-    # train_score, test_score = validation_curve(model, x_train, y_train,
-    #                                         param_name="max_depth",
-    #                                         param_range=depthList,
-    #                                         scoring="accuracy",
-    #                                         cv=5)
-    # end_time = time.time()
-    # now = datetime.now()
-    # print("Cross-validation END:", now.strftime("%H:%M"))
-    # print("Elapsed Time: " + str(round((end_time-start_time), 2)) + "s")
-    # # Calculating mean and standard deviation of training score
-    # mean_train_score = np.mean(train_score, axis = 1)
+    if case == 1:
+        avg = testAccuracy(x_train, y_train, x_test, y_test)
+        print("Best accuracy for our model (on avg): " + str(round(avg*100, 4)) + "%")
+
+
+def plotCVCurves(params, train, test):
+    # Plot mean accuracy scores for training and testing scores
+    plt.semilogx(params, train, label = "Training Score", color = 'b')
+    plt.semilogx(params, test, label = "Cross Validation Score", color = 'g')
+
+    # Creating the plot
+    plt.title("Validation Curve with Random Forests")
+    plt.xlabel("C")
+    plt.ylabel("Accuracy")
+    plt.tight_layout()
+    plt.legend(loc = 'best')
+    plt.show()    
+
+
+def crossValidation(xTrain, yTrain):
+    print("Performing cross-validation...")
+    depthList = np.linspace(5, 100, 10)
+    model = RandomForestClassifier()
+    start_time = time.time()
+    now = datetime.now()
+
+    print("Cross-validation START:", now.strftime("%H:%M"))
+    train_score, test_score = validation_curve(model, xTrain, yTrain,
+                                            param_name="max_depth",
+                                            param_range=depthList,
+                                            scoring="accuracy",
+                                            cv=5)
+    end_time = time.time()
+    now = datetime.now()
+    print("Cross-validation END:", now.strftime("%H:%M"))
+    print("Elapsed Time: " + str(round((end_time-start_time), 2)) + "s")
+
+    # Calculating mean training and testing scores
+    mean_train_score = np.mean(train_score, axis = 1)    
+    mean_test_score = np.mean(test_score, axis = 1)
+    plotCVCurves(depthList, mean_train_score, mean_test_score)
     
-    # # Calculating mean and standard deviation of testing score
-    # mean_test_score = np.mean(test_score, axis = 1)
-    
-    # # Plot mean accuracy scores for training and testing scores
-    # plt.semilogx(depthList, mean_train_score, label = "Training Score", color = 'b')
-    # plt.semilogx(depthList, mean_test_score, label = "Cross Validation Score", color = 'g')
 
-    # # Creating the plot
-    # plt.title("Validation Curve with Random Forests")
-    # plt.xlabel("C")
-    # plt.ylabel("Accuracy")
-    # plt.tight_layout()
-    # # plt.xlim(10e-10, 10e-4)
-    # # plt.ylim(0.0, 1.1)
-    # plt.legend(loc = 'best')
-    # plt.show()
 
+def testAccuracy(xTrain, yTrain, xTest, yTest):
     test_acc_list = []
     for i in range(100):
         print(i)
         model = RandomForestClassifier(max_depth=10, n_estimators=850)
-        model.fit(x_train, y_train)
-        preds = model.predict(x_test)
-        score = accuracy_score(y_test, preds)
+        model.fit(xTrain, yTrain)
+        preds = model.predict(xTest)
+        score = accuracy_score(yTest, preds)
         # print("The accuracy of our best model: ", score)
         test_acc_list.append(score)
 
-    mean_test_acc = np.mean(test_acc_list, axis=1)
-    print("Best accuracy for our model (on avg): " +  round(mean_test_acc*100, 4) + "%")
-    
-
-    # model = LogisticRegression(solver="liblinear", max_iter=1000, 
-    #                             tol=1e-7, # 1e-7 for combined optimal
-    #                             intercept_scaling=1)  # 2 for combined optimal
-    # start_time = time.time()
-    # now = datetime.now()
-    # print("Cross-validation START:", now.strftime("%H:%M"))
-    # train_score, test_score = validation_curve(model, x_train, y_train,
-    #                                         param_name="C",
-    #                                         param_range=clist,
-    #                                         scoring="accuracy",
-    #                                         cv=5)
-    # end_time = time.time()
-    # now = datetime.now()
-    # print("Cross-validation END:", now.strftime("%H:%M"))
-    # print("Elapsed Time: " + str(round((end_time-start_time), 2)) + "s")
-    # # Calculating mean of training and validation set score
-    # mean_train_score = np.mean(train_score, axis = 1)
-    # mean_test_score = np.mean(test_score, axis = 1)
-
-    # best_idx = np.argmax(mean_test_score, axis=0)
-    # best_C = clist[best_idx]
-    # print("Best Accuracy:", mean_test_score[best_idx])
-    # print("Optimal C hyperparameter:", clist[best_idx])
-    
-    # # Plot mean accuracy scores for training and testing scores
-    # plt.semilogx(clist, mean_train_score, label = "Training Score", color = 'b')
-    # plt.semilogx(clist, mean_test_score, label = "Cross Validation Score", color = 'g')
-    
-    # # Creating the plot
-    # plt.title("Validation Curve with Logistic Regression")
-    # plt.xlabel("C")
-    # plt.ylabel("Accuracy")
-    # plt.tight_layout()
-    # plt.legend(loc = 'best')
-    # plt.show()
-
-
-
-    # """Creating, fitting, and making predictions with the model"""
-    # ## comment out models to test out
-    # print("Fitting model...")
-    # model = RandomForestClassifier(max_depth=35, random_state=0)
-    # model.fit(x_train, y_train)
-
-
-    # print("Making predictions...")
-    # y_pred = model.predict(x_test)
-
-    # print("[Accuracy]",metrics.accuracy_score(y_test, y_pred))
-
-    # """Showcasing accuracy via confusion matrix"""
-    # cm = confusion_matrix(y_pred, y_test)
-
-    # # print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-    # score = model.score(x_test, y_test)
-
-    # ## Start comment
-    # labels = [digit1, digit2]
-    # fig, ax = plt.subplots()
-    # tick_marks = np.arange(len(labels))
-    # plt.xticks(tick_marks, labels)
-    # plt.yticks(tick_marks, labels)
-    # # create heatmap
-    # sns.heatmap(pd.DataFrame(cm), annot=True, cmap="YlGnBu", fmt='g')
-    # ax.xaxis.set_label_position("top")
-    # # plt.title('Confusion matrix', y=1.1)
-    # plt.ylabel('True')
-    # plt.xlabel('Predicted')
-    # all_sample_title = 'Accuracy Score: {0}'.format(score)
-    # plt.title(all_sample_title, size=15)
-    # plt.show()
-    # ## End comment
-
-
-    # """Visualize misclassified images"""
-    # index = 0
-    # misclassifiedIndexes = []
-    # for label, predict in list(zip(y_pred, y_test)):
-    #     index +=1
-    #     if label != predict: 
-    #         misclassifiedIndexes.append(index)
-
-    # plt.figure(figsize=(20,4))
-    # for plotIndex, badIndex in enumerate(misclassifiedIndexes[1:5]):
-    #     plt.subplot(1, 5, plotIndex + 1)
-    #     plt.imshow(np.reshape(x_test[badIndex], (10,10)), cmap=plt.cm.gray)
-    #     # plt.title("Predicted: {}, Actual: {}".format(y_test[badIndex], x_test[badIndex]), fontsize = 15)
-    # plt.show()
-
-
-
+    return np.mean(test_acc_list, axis=0)
 
 
 if __name__== "__main__":
