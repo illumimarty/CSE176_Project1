@@ -1,12 +1,13 @@
-import numpy as np
+import seaborn as sns
 import time
 import random
 import datetime
 import matplotlib.pyplot as plt
 from clean import *
 from scipy.io import loadmat
+from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import train_test_split, validation_curve
 
 ### CSE 176-01 - Fall 2021 Project1 - Random Forest Binary Classification on MNISTmini digits 4 and 7
@@ -19,6 +20,8 @@ def main():
     ## 0 - 5-fold cross-validation and adjusting hyperparameters
     ## 1 - Determining avg testing accuracy
     case = 1
+    cm = True # if true and case=1, see confusion matrix
+
 
     ## EDIT THESE 2 VARS TO CHANGE DIGIT CLASSES ##
     digit1 = 4
@@ -66,8 +69,11 @@ def main():
         crossValidation(x_train, y_train)
 
     if case == 1:
-        avg = testAccuracy(x_train, y_train, x_test, y_test)
+        avg, pred, gnd = testAccuracy(x_train, y_train, x_test, y_test, cm)
         print("Best accuracy for our model (on avg): " + str(round(avg*100, 4)) + "%")
+        if cm is True:
+            confustionMatrix(pred, gnd, digit1, digit2)
+
 
 
 def plotCVCurves(params, train, test):
@@ -109,10 +115,13 @@ def crossValidation(xTrain, yTrain):
     
 
 
-def testAccuracy(xTrain, yTrain, xTest, yTest):
+def testAccuracy(xTrain, yTrain, xTest, yTest, cm):
     test_acc_list = []
-    for i in range(100):
-        print(i)
+    result_pred = []
+    result_yTest = []
+
+    for i in range(5):
+        # print(i)
         model = RandomForestClassifier(max_depth=10, n_estimators=850)
         model.fit(xTrain, yTrain)
         preds = model.predict(xTest)
@@ -120,7 +129,38 @@ def testAccuracy(xTrain, yTrain, xTest, yTest):
         # print("The accuracy of our best model: ", score)
         test_acc_list.append(score)
 
-    return np.mean(test_acc_list, axis=0)
+    if cm is True:
+        result_pred = preds
+        result_yTest = yTest
+
+    return np.mean(test_acc_list, axis=0), result_pred, result_yTest
+
+def confustionMatrix(yPred, yTrain, digit1, digit2):
+    """Showcasing accuracy via confusion matrix"""
+    cm = confusion_matrix(yPred, yTrain)
+
+    # # print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    score = metrics.accuracy_score(yTrain, yPred)
+    score = round(score*100, 4)
+    print("Accuracy:", score, "%")
+    # score = model.score(y_train, y_pred)
+
+    ## Start comment
+    labels = [digit1, digit2]
+    fig, ax = plt.subplots()
+    tick_marks = np.arange(len(labels))
+    plt.xticks(tick_marks, labels)
+    plt.yticks(tick_marks, labels)
+    # create heatmap
+    sns.heatmap(pd.DataFrame(cm), annot=True, cmap="YlGnBu", fmt='g')
+    ax.xaxis.set_label_position("top")
+    # plt.title('Confusion matrix', y=1.1)
+    plt.ylabel('True')
+    plt.xlabel('Predicted')
+    all_sample_title = 'Accuracy Score: {0}'.format(score)
+    plt.title(all_sample_title, size=15)
+    plt.show()
+    # End comment 
 
 
 if __name__== "__main__":
