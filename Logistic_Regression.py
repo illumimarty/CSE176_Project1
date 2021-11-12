@@ -7,8 +7,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from sklearn.model_selection import train_test_split, validation_curve
+from datetime import date, datetime
 import matplotlib.pyplot as plt
 from math import exp
+import time
+import random
+
+
+random.seed(68)
 
 def main(): 
 
@@ -54,24 +60,39 @@ def main():
     x_dummy, x_test, y_dummy, y_test = train_test_split(dataXtest, dataYtest, test_size=0.99)
 
     """Perform cross-validation on the hyperparameter C"""
-    clist = np.logspace(-6,-3.75,20)
+    # print("Performing cross-validation...")
+    clist = np.logspace(-8.5,6,25)
+    # clist = np.linspace(1,-1, 20)
+    # clist = np.logsp
 
     ## ADD PARAMETERS HERE
-    model = LogisticRegression(solver="liblinear", max_iter=1000)
+    model = LogisticRegression(solver="liblinear", max_iter=1000, 
+                                tol=1e-7, # 1e-7 for combined optimal
+                                intercept_scaling=1)  # 2 for combined optimal
+    start_time = time.time()
+    now = datetime.now()
+    print("Cross-validation START:", now.strftime("%H:%M"))
     train_score, test_score = validation_curve(model, x_train, y_train,
                                             param_name="C",
                                             param_range=clist,
                                             scoring="accuracy",
                                             cv=5)
-    # Calculating mean and standard deviation of training score
+    end_time = time.time()
+    now = datetime.now()
+    print("Cross-validation END:", now.strftime("%H:%M"))
+    print("Elapsed Time: " + str(round((end_time-start_time), 2)) + "s")
+    # Calculating mean of training and validation set score
     mean_train_score = np.mean(train_score, axis = 1)
-    
-    # Calculating mean and standard deviation of testing score
     mean_test_score = np.mean(test_score, axis = 1)
+
+    best_idx = np.argmax(mean_test_score, axis=0)
+    best_C = clist[best_idx]
+    print("Best Accuracy:", mean_test_score[best_idx])
+    print("Optimal C hyperparameter:", clist[best_idx])
     
     # Plot mean accuracy scores for training and testing scores
-    plt.plot(clist, mean_train_score, label = "Training Score", color = 'b')
-    plt.plot(clist, mean_test_score, label = "Cross Validation Score", color = 'g')
+    plt.semilogx(clist, mean_train_score, label = "Training Score", color = 'b')
+    plt.semilogx(clist, mean_test_score, label = "Cross Validation Score", color = 'g')
     
     # Creating the plot
     plt.title("Validation Curve with Logistic Regression")
