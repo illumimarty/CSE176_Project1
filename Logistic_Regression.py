@@ -5,7 +5,7 @@ from clean import *
 from scipy.io import loadmat
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from sklearn.model_selection import train_test_split, validation_curve
 import matplotlib.pyplot as plt
 import random 
@@ -52,41 +52,49 @@ def main():
 
     x_dummy, x_test, y_dummy, y_test = train_test_split(dataXtest, dataYtest, test_size=0.99)
 
+    model = LogisticRegression(solver="liblinear", max_iter=1000,
+                                C=0.6,
+                                tol=0.00000004,
+                                intercept_scaling=1.75)
+    model.fit(x_train, y_train)
+    preds = model.predict(x_test)
+    print("The accuracy of our best model: ", accuracy_score(y_test, preds))
+
     """Perform cross-validation on the hyperparameter tol"""
-    print("Cross-validating...")
-    tlist = np.logspace(-12, 4, 25)
+    # print("Cross-validating...")
+    # tlist = np.logspace(-12, 4, 25)
 
-    ## ADD PARAMETERS HERE
-    # The optimal value for the tolerance is seen from 1e-6 to 1e-12
-    model = LogisticRegression(solver="liblinear", max_iter=1000)
-    train_score, test_score = validation_curve(model, x_train, y_train,
-                                            param_name="tol",
-                                            param_range=tlist,
-                                            scoring="accuracy",
-                                            cv=5)
-    # Calculating mean of the training score
-    mean_train_score = np.mean(train_score, axis = 1)
+    # ## ADD PARAMETERS HERE
+    # # The optimal value for the tolerance is seen from 1e-6 to 1e-12
+    # model = LogisticRegression(solver="liblinear", max_iter=1000)
+    # train_score, test_score = validation_curve(model, x_train, y_train,
+    #                                         param_name="tol",
+    #                                         param_range=tlist,
+    #                                         scoring="accuracy",
+    #                                         cv=5)
+    # # Calculating mean of the training score
+    # mean_train_score = np.mean(train_score, axis = 1)
     
-    # Calculating mean of the testing score
-    mean_test_score = np.mean(test_score, axis = 1)
+    # # Calculating mean of the testing score
+    # mean_test_score = np.mean(test_score, axis = 1)
 
-    # Find the value that gives the best accuracy
-    best_idx = np.argmax(mean_test_score, axis=0)
-    best_Tol = tlist[best_idx]
-    print("Best Tol: ", best_Tol)
-    print("Best Accuracy: ", mean_test_score[best_idx])
+    # # Find the value that gives the best accuracy
+    # best_idx = np.argmax(mean_test_score, axis=0)
+    # best_Tol = tlist[best_idx]
+    # print("Best Tol: ", best_Tol)
+    # print("Best Accuracy: ", mean_test_score[best_idx])
 
-    # Plot mean accuracy scores for training and testing scores
-    plt.semilogx(tlist, mean_train_score, label = "Training Score", color = 'b')
-    plt.semilogx(tlist, mean_test_score, label = "Cross Validation Score", color = 'g')
+    # # Plot mean accuracy scores for training and testing scores
+    # plt.semilogx(tlist, mean_train_score, label = "Training Score", color = 'b')
+    # plt.semilogx(tlist, mean_test_score, label = "Cross Validation Score", color = 'g')
     
-    # Creating the plot
-    plt.title("Validation Curve with Logistic Regression")
-    plt.xlabel("Tol")
-    plt.ylabel("Accuracy")
-    plt.tight_layout()
-    plt.legend(loc = 'best')
-    plt.show()
+    # # Creating the plot
+    # plt.title("Validation Curve with Logistic Regression")
+    # plt.xlabel("Tol")
+    # plt.ylabel("Accuracy")
+    # plt.tight_layout()
+    # plt.legend(loc = 'best')
+    # plt.show()
 
 if __name__== "__main__":
   main()
