@@ -19,7 +19,7 @@ def main():
     ## 0 - 5-fold cross-validation and adjusting hyperparameters
     ## 1 - Determining avg testing accuracy
     case = 0
-    cm = False # if true and case=1, see confusion matrix
+    cm = True # if true and case=1, see confusion matrix
 
     ## EDIT THESE 2 VARS TO CHANGE DIGIT CLASSES ##
     digit1 = 4
@@ -40,7 +40,7 @@ def main():
     # """Creating training, validation, and test sets"""
     print("Creating train/val/test sets...")
     dataX, dataY = combineDigitData(digit1train, digit2train, digit1gnd, digit2gnd)
-    x_train, x_valid, y_train, y_valid = train_test_split(dataX, dataY, train_size=0.5)
+    x_train, x_valid, y_train, y_valid = train_test_split(dataX, dataY, train_size=0.99)
 
     print("Creating tests sets...")
     digit1test, digit2test, digit1gnd, digit2gnd = divideDigitData(d1, d2, x_test, y_test)                         
@@ -62,11 +62,11 @@ def main():
 
 def crossValidation(xTrain, yTrain):
     print("Performing cross-validation...")
-    depthList = np.linspace(5, 100, 10)
+    depthList = np.linspace(100, 1500, 20, dtype=int)
     model = RandomForestClassifier()
     start_time = time.time()
     now = datetime.now()
-    param = "max_depth" # CHANGE MODEL PARAMATER HERE
+    param = "n_estimators" # CHANGE MODEL PARAMATER HERE
 
     print("Cross-validation START:", now.strftime("%H:%M"))
     train_score, test_score = validation_curve(model, xTrain, yTrain,
