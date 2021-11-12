@@ -1,6 +1,6 @@
-import pandas as pd
+# import pandas as pd
 import numpy as np
-import seaborn as sns
+# import seaborn as sns
 from clean import *
 from scipy.io import loadmat
 from sklearn.ensemble import RandomForestClassifier
@@ -10,6 +10,10 @@ from sklearn.model_selection import train_test_split, validation_curve
 import matplotlib.pyplot as plt
 from math import exp
 import time
+import random
+import datetime
+
+random.seed(68)
 
 def main(): 
 
@@ -54,41 +58,88 @@ def main():
 
     x_dummy, x_test, y_dummy, y_test = train_test_split(dataXtest, dataYtest, test_size=0.99)
 
-    """Perform cross-validation on the hyperparameter C"""
-    print("Performing cross-validation...")
-    depthList = np.linspace(5, 100, 10)
-    # clist = np.linspace(1,-1, 20)
-    # clist = np.logsp
+    # """Perform cross-validation on the hyperparameter C"""
+    # print("Performing cross-validation...")
+    # depthList = np.linspace(5, 100, 10)
+    # # clist = np.linspace(1,-1, 20)
+    # # clist = np.logsp
 
-    ## ADD PARAMETERS HERE
-    model = RandomForestClassifier()
-    start_time = time.time()
-    train_score, test_score = validation_curve(model, x_train, y_train,
-                                            param_name="max_depth",
-                                            param_range=depthList,
-                                            scoring="accuracy",
-                                            cv=5)
-    end_time = time.time()
-    print("Cross-validation time: " + str(round((end_time-start_time), 2)) + "s")
-    # Calculating mean and standard deviation of training score
-    mean_train_score = np.mean(train_score, axis = 1)
+    # ## ADD PARAMETERS HERE
+    # model = RandomForestClassifier()
+    # start_time = time.time()
+    # now = datetime.now()
+    # print("Cross-validation START:", now.strftime("%H:%M"))
+    # train_score, test_score = validation_curve(model, x_train, y_train,
+    #                                         param_name="max_depth",
+    #                                         param_range=depthList,
+    #                                         scoring="accuracy",
+    #                                         cv=5)
+    # end_time = time.time()
+    # now = datetime.now()
+    # print("Cross-validation END:", now.strftime("%H:%M"))
+    # print("Elapsed Time: " + str(round((end_time-start_time), 2)) + "s")
+    # # Calculating mean and standard deviation of training score
+    # mean_train_score = np.mean(train_score, axis = 1)
     
-    # Calculating mean and standard deviation of testing score
-    mean_test_score = np.mean(test_score, axis = 1)
+    # # Calculating mean and standard deviation of testing score
+    # mean_test_score = np.mean(test_score, axis = 1)
     
-    # Plot mean accuracy scores for training and testing scores
-    plt.semilogx(depthList, mean_train_score, label = "Training Score", color = 'b')
-    plt.semilogx(depthList, mean_test_score, label = "Cross Validation Score", color = 'g')
+    # # Plot mean accuracy scores for training and testing scores
+    # plt.semilogx(depthList, mean_train_score, label = "Training Score", color = 'b')
+    # plt.semilogx(depthList, mean_test_score, label = "Cross Validation Score", color = 'g')
+
+    # # Creating the plot
+    # plt.title("Validation Curve with Random Forests")
+    # plt.xlabel("C")
+    # plt.ylabel("Accuracy")
+    # plt.tight_layout()
+    # # plt.xlim(10e-10, 10e-4)
+    # # plt.ylim(0.0, 1.1)
+    # plt.legend(loc = 'best')
+    # plt.show()
+
+    model = RandomForestClassifier(max_depth=10, n_estimators=850)
+    model.fit(x_train, y_train)
+    preds = model.predict(x_test)
+    print("The accuracy of our best model: ", accuracy_score(y_test, preds))
+
+    # model = LogisticRegression(solver="liblinear", max_iter=1000, 
+    #                             tol=1e-7, # 1e-7 for combined optimal
+    #                             intercept_scaling=1)  # 2 for combined optimal
+    # start_time = time.time()
+    # now = datetime.now()
+    # print("Cross-validation START:", now.strftime("%H:%M"))
+    # train_score, test_score = validation_curve(model, x_train, y_train,
+    #                                         param_name="C",
+    #                                         param_range=clist,
+    #                                         scoring="accuracy",
+    #                                         cv=5)
+    # end_time = time.time()
+    # now = datetime.now()
+    # print("Cross-validation END:", now.strftime("%H:%M"))
+    # print("Elapsed Time: " + str(round((end_time-start_time), 2)) + "s")
+    # # Calculating mean of training and validation set score
+    # mean_train_score = np.mean(train_score, axis = 1)
+    # mean_test_score = np.mean(test_score, axis = 1)
+
+    # best_idx = np.argmax(mean_test_score, axis=0)
+    # best_C = clist[best_idx]
+    # print("Best Accuracy:", mean_test_score[best_idx])
+    # print("Optimal C hyperparameter:", clist[best_idx])
     
-    # Creating the plot
-    plt.title("Validation Curve with Random Forests")
-    plt.xlabel("C")
-    plt.ylabel("Accuracy")
-    plt.tight_layout()
-    # plt.xlim(10e-10, 10e-4)
-    # plt.ylim(0.0, 1.1)
-    plt.legend(loc = 'best')
-    plt.show()
+    # # Plot mean accuracy scores for training and testing scores
+    # plt.semilogx(clist, mean_train_score, label = "Training Score", color = 'b')
+    # plt.semilogx(clist, mean_test_score, label = "Cross Validation Score", color = 'g')
+    
+    # # Creating the plot
+    # plt.title("Validation Curve with Logistic Regression")
+    # plt.xlabel("C")
+    # plt.ylabel("Accuracy")
+    # plt.tight_layout()
+    # plt.legend(loc = 'best')
+    # plt.show()
+
+
 
     # """Creating, fitting, and making predictions with the model"""
     # ## comment out models to test out
