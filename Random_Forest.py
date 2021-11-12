@@ -98,10 +98,19 @@ def main():
     # plt.legend(loc = 'best')
     # plt.show()
 
-    model = RandomForestClassifier(max_depth=10, n_estimators=850)
-    model.fit(x_train, y_train)
-    preds = model.predict(x_test)
-    print("The accuracy of our best model: ", accuracy_score(y_test, preds))
+    test_acc_list = []
+    for i in range(100):
+        print(i)
+        model = RandomForestClassifier(max_depth=10, n_estimators=850)
+        model.fit(x_train, y_train)
+        preds = model.predict(x_test)
+        score = accuracy_score(y_test, preds)
+        # print("The accuracy of our best model: ", score)
+        test_acc_list.append(score)
+
+    mean_test_acc = np.mean(test_acc_list, axis=1)
+    print("Best accuracy for our model (on avg): " +  round(mean_test_acc*100, 4) + "%")
+    
 
     # model = LogisticRegression(solver="liblinear", max_iter=1000, 
     #                             tol=1e-7, # 1e-7 for combined optimal
