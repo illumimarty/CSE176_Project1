@@ -7,26 +7,60 @@ from torchvision import datasets
 from torchvision.transforms import ToTensor
 from torch.utils.data import DataLoader, random_split
 
-class Network(nn.Module):
+class PixelNet(nn.Module):
     """THIS IS NOT LeNet5"""
     def __init__(self):
-        super(Network,self).__init__()
+        super(PixelNet,self).__init__()
         # Input layer, transform the image to 100 neurons 
         self.fc1 = nn.Linear(28*28, 100)
         # Hidden layer 1 -> 2, 100 neurons to 50 neurons
         self.fc2 = nn.Linear(100, 50)
         # Hidden layer 2 -> Output layer, 50 neurons to 10 ouput classes
         self.fc3 = nn.Linear(50, 10)
-        # Defining the activation as ReLu
+        # Defining the activation function as ReLu (consider using the softmax function, multi-class)
         self.relu = nn.ReLU()
 
-    def forward(self, images):
+    def forward(self, x):
         # Flattens the image into an object of the following dimensions: (batch_size x 784)
-        x = images.view(-1,28*28)
+        x = x.view(-1,28*28)
         #print(x.size())
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.fc3(x)
+        return x
+
+class LeNet5():
+    """layer 1: convolution with 8 kernels of size 3x3 
+       layer 2: 2x2 sub-sampling 
+       layer 3: convolution with 25 kernels of size 5x5
+       layer 4: convolution with 84 kernels of size 4x4 
+       layer 5: 2x1 sub-sampling, classification layer"""
+
+    def __init__(self):
+        super(LeNet5,self).__init__()
+        self.fc1 = nn.linear(120, 84)
+        self.fc2 = nn.linear(84, 10)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5)
+        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5)
+        self.conv3 = nn.Conv2d(in_channels=16, out_channels=120, kernel_size=5)
+
+        # Max pooling will activate 1the features with the most presence
+        # We can, try average pooling -  reflects the average of features (smooths image)
+        self.pool = nn.MaxPool2d(kernel_size=2)
+
+        # For a more modern approach use nn.ReLU()
+        self.tanh = nn.tanh()
+
+    def forward(self, x):
+        x = self.tanh(self.conv1(x))
+        x = self.pool(x)
+        x = self.tanh(self.conv2(x))
+        x = self.pool(x)
+        x = self.tanh(self.conv3(x))
+        x = self.pool(x)
+        x = torch.flatten(x)
+        x = self.tanh(self.fc1(x))
+        x = self.fc2(x)
         return x
 
 def train_nn(model, criterion, optimizer, trainloader):
@@ -78,35 +112,22 @@ def update_optimal_model(model, min_valid_loss, valid_loss):
         print(f'\t\t\t No decrease in observed errors')
         return min_valid_loss
 
-def main(): 
-    print("Spliting the dataset...")
-    train_set = datasets.MNIST(root='./data', train=True, download=True, transform=ToTensor())
-    test_set = datasets.MNIST(root='./data', train=False, download=True, transform=ToTensor())
-    train_set, valid_set = random_split(train_set,[50000,10000])
-    
-    # DataLoaders are iterable data objects
-    trainloader = DataLoader(train_set, batch_size=128)
-    validloader = DataLoader(valid_set, batch_size=128)
-
-    print("Initialize the network")
-    model = Network()
-    
+def process(model, trainloader, validloader, epochs, min_valid_loss):
     print("Checking GPU availability...")
     if torch.cuda.is_available():
         model = model.cuda()
         print("Model loaded onto GPU")
     else:
         print("     GPU Not available")
-    
+
     print("Initialize criterion")
     criterion = nn.CrossEntropyLoss()
     print("Initialize optimizer")
     # lr = Learning Rate
     optimizer = torch.optim.SGD(model.parameters(), lr = 0.01)
 
-    epochs = 5
-    iterations = 0
-    min_valid_loss = np.inf
+    iterations = 0 # for visdom, currently unused
+    #min_valid_loss = np.inf
 
     print("Begin training...")
     for e in range(epochs):
@@ -122,5 +143,34 @@ def main():
         min_loss = update_optimal_model(model, min_valid_loss, valid_loss)
         min_valid_loss = min_loss
 
+def main(): 
+
+    # Case 0 =  pixel_Net, Case 1 = LeNet5
+    case = 0
+
+    epochs = 5
+    iterations = 0  # for visdom, currently unused
+    min_valid_loss = np.inf
+
+    ######################################################
+
+    print("Spliting the dataset...")
+    train_set = datasets.MNIST(root='./data', train=True, download=True, transform=ToTensor())
+    test_set = datasets.MNIST(root='./data', train=False, download=True, transform=ToTensor())
+    train_set, valid_set = random_split(train_set,[50000,10000])
+    
+    # DataLoaders are iterable data objects
+    trainloader = DataLoader(train_set, batch_size=128)
+    validloader = DataLoader(valid_set, batch_size=128)
+
+    print("Initialize the network")
+    if case == 0:
+        model = PixelNet()
+    
+    # elif case == 0:
+    #     model = LeNet5()
+
+    process(model, trainloader, validloader, epochs, min_valid_loss)
+    
 if __name__== "__main__":
     main()
