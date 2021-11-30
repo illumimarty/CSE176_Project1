@@ -2,3 +2,5 @@
 clean.pyc
 plots.pyc
 \datasets
+\models
+\json

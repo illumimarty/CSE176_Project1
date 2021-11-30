@@ -1,5 +1,44 @@
 import numpy as np
+from tensorflow.keras.preprocessing import image_dataset_from_directory
+from tensorflow.keras import layers
+# from tensorflow_datasets.core.dataset_utils import as_numpy
+from tensorflow_datasets import as_numpy
 
+"""PHASE 2 Helper Functions"""
+
+def createImageDataset(path, color, seedVal, batchSize):
+    if color is True:
+        color = "rgb"
+    else:
+        color = "grayscale"
+
+    dataset = image_dataset_from_directory(
+        path,
+        labels="inferred",
+        color_mode=color,
+        image_size=(224,224),
+        seed=seedVal,
+        batch_size=batchSize,
+        shuffle=False
+    )
+
+    return dataset
+
+def getFeaturesAndLabels(norm, batch):
+    if norm is True:
+        normalization_layer = layers.Rescaling(1./255)
+        batch = batch.map(lambda x, y: (normalization_layer(x), y))
+    
+    image, label = next(iter(batch))
+    npImages = as_numpy(image)
+   
+    npImages = npImages.reshape(npImages.shape[0], -1)
+    npLabels = as_numpy(label)
+
+    return npImages, npLabels
+
+
+"""PHASE 1 Helper Functions"""
 # extracts training and ground truth sets into
 def extractMNISTmini(data, set1, set2, set3, set4): 
     xTrain = np.array(data[set1])
