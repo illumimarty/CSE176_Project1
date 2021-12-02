@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xgboost as xgb
 import pandas as pd
-from clean import createImageDataset, getFeaturesAndLabels
+import seaborn as sns
+from clean import createImageDataset, getFeaturesAndLabels, getDigitGnd, getDigitRange
 from sklearn.metrics import accuracy_score
 
 def saveModel(model):
@@ -35,7 +36,7 @@ def main():
     # test_data_dir = "./datasets/100-bird-species/test"
 
     """DATA EXTRACTION PARAMETERS"""
-    train_batch_size = 1000     # 45980 images in training
+    train_batch_size = 1000    # 45980 images in training
     valid_batch_size = 35       # 1575 images in validation
     # test_batch_size = 1         # -- images in testing
     seed_val = 42
@@ -55,6 +56,8 @@ def main():
         'eval_metric': 'mlogloss'
     }
 
+    
+
     # ---------------------------------------------------------------------------
     """Data Extraction and Preprocessing"""
     train_set = createImageDataset(batchSize=train_batch_size, path=train_data_dir, color=isColored, seedVal=seed_val)
@@ -67,18 +70,24 @@ def main():
 
     # DON'T USE YET, MIGHT BE USEFUL LATER
     # --------------------------------------------
-    # col = []
-    # for i in range(224*224):
-    #     col.append(i)
+
+    # classSix = getDigitRange(0, train_labels)
+    # for i in classSix:
+    #     print(i)
+ 
 
     # train_fea_df = pd.DataFrame(train_features, columns=col)
-    # train_gnd_df = pd.DataFrame(train_labels)
+    # train_gnd_df = pd.DataFrame(train_labels, columns=['species'])
     # valid_fea_df = pd.DataFrame(valid_features, columns=col)
     # valid_gnd_df = pd.DataFrame(valid_labels)
     # print(train_fea_df.head())
     # print(train_fea_df.tail())
     # print(train_gnd_df.head())
     # print(train_gnd_df.tail())
+
+    # sns.countplot(x='species', data=train_gnd_df)
+    # plt.show()
+
     # --------------------------------------------
 
     print("Creating model...")
