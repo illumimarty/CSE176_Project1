@@ -4,7 +4,7 @@ from torch import nn
 from tqdm import tqdm
 from torchvision import datasets
 from torchvision.transforms import ToTensor
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, TensorDataset
 
 #DIGITS 1,2,4,7,8
 
@@ -42,27 +42,27 @@ def main():
     dtrain_mean = data_train.mean(axis=0)
     train_data.data = data_train - dtrain_mean
 
-    train_labels = train_data.targets
-    #test_labels = torch.tensor(data_test.targets)
-
-    idx_1 = 1*(train_labels == 1).nonzero().flatten().tolist()
-    idx_2 = 1*(train_labels == 2).nonzero().flatten().tolist()
-    idx_4 = 1*(train_labels == 4).nonzero().flatten().tolist()
-    idx_7 = 1*(train_labels == 7).nonzero().flatten().tolist()
-    idx_8 = 1*(train_labels == 8).nonzero().flatten().tolist()
-    subset = idx_1 + idx_2 + idx_4 + idx_7 + idx_8
+    digits = [1, 2, 4, 7, 8]
+    subset = []
+    for i in range(len(train_data)):
+        if train_data.targets[i] in digits:
+            subset.append(i)
 
     train_data.data = torch.from_numpy(train_data.data)
     #print(len(train_data.targets))
-    train_data = torch.utils.data.Subset(train_data, subset)
-    #print(type(train_data.dataset))
+    sub_data = torch.utils.data.Subset(train_data, subset)
+    sub_targets = torch.utils.data.Subset(train_data.targets, subset) 
+    modded_data = TensorDataset(sub_data, sub_targets)
+    print(type(modded_data))
     #test_data = torch.utils.data.Subset(data_test, subset)
 
-    train_loader = DataLoader(train_data.dataset, num_workers=4, batch_size=2048, shuffle=True)
-    epoch = 5
-    for e in range(epoch):
-        for data, labels in tqdm(train_loader):
-            print(labels)
+    train_loader = DataLoader(modded_data, num_workers=4, batch_size=2048, shuffle=True)
+    # epoch = 5
+    # for e in range(epoch):
+    #     for data, labels in tqdm(train_loader):
+    #         #print(data[0])
+    #         print(labels[0])
+    #         break
 
 
 
