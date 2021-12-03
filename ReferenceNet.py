@@ -22,7 +22,6 @@ class ReferenceNet(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        print("here")
         # Flattens the image into an object of the following dimensions: (batch_size x 784)
         x = x.view(-1,28*28)
         #print(x.size())
@@ -43,7 +42,78 @@ def update_optimal_model(model, min_valid_loss, valid_loss):
         print(f'\t\t\t No decrease in observed errors')
         return min_valid_loss
 
-def process(model, trainloader, validloader, epochs, min_valid_loss):
+def toDataLoader(subset):
+    labels = []
+    for i in range(len(subset)):
+        if subset[i][1] == 1:
+            labels.append(0)
+        if subset[i][1] == 2:
+            labels.append(1)
+        if subset[i][1] == 4:
+            labels.append(2)
+        if subset[i][1] == 7:
+            labels.append(3)
+        if subset[i][1] == 8:
+            labels.append(4)
+
+    labels = torch.tensor(labels)
+
+    # Normalizing data
+    data_loader = DataLoader(subset, batch_size=len(subset))
+    numpy_data = next(iter(data_loader))[0].numpy().reshape([-1,28*28]).astype(np.float32)
+    data_norm = (numpy_data / 255).astype(np.float32)
+    data_mean = data_norm.mean(axis=0)
+    data_norm -= data_mean
+    combined_data = TensorDataset(torch.from_numpy(data_norm), labels)
+    data_loader = DataLoader(combined_data, batch_size=len(combined_data), shuffle=True)
+
+    return data_loader
+
+def getDataset(digits, data, split=False):
+    digit_list = []
+    subset_range = []
+
+    # Getting features of the specified digits from MNIST
+    for digit in digits:
+        digit_list.append(1*(data.targets == digit).nonzero().flatten().tolist())
+
+    for digit in digit_list:
+        subset_range += digit
+
+    # Getting labels
+    data_subset = Subset(data, subset_range)
+
+    if split is True:
+        train_len = int(0.8*len(data_subset))
+        val_len = len(data_subset) - train_len
+
+        train_subset, val_subset = random_split(data_subset, [train_len, val_len], generator=torch.Generator().manual_seed(1))
+
+        train_loader = toDataLoader(train_subset)
+        val_loader = toDataLoader(val_subset)
+
+        return train_loader, val_loader
+
+    else:
+        data_loader = toDataLoader(data_subset)
+        return data_loader
+
+def main():
+
+    epochs = 100
+    min_valid_loss = np.inf
+
+    ######################################################
+    digits = [1,2,4,7,8]
+    train_data_th = datasets.MNIST(root='./datasets', download=True, train=True, transform=ToTensor())
+    test_data_th = datasets.MNIST(root='./datasets', download=True, train=False, transform=ToTensor())
+
+    train_loader, valid_loader = getDataset(digits, train_data_th, split=True)
+    test_loader = getDataset(digits, test_data_th, split=False)
+    
+    print("Initialize the network")
+    model = ReferenceNet()
+        
     print("Checking GPU availability...")
     if torch.cuda.is_available():
         model = model.cuda()
@@ -55,15 +125,15 @@ def process(model, trainloader, validloader, epochs, min_valid_loss):
     criterion = nn.CrossEntropyLoss()
     print("Initialize optimizer")
     # lr = Learning Rate
-    optimizer = torch.optim.SGD(model.parameters(), lr = 1)
-    scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=9)
+    optimizer = torch.optim.SGD(model.parameters(), lr = 0.01)
+    # scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=9)
     scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     print("Begin training...")
     for e in range(epochs):
         # Train the model and compute the training loss
         train_loss = 0.0
-        for data, labels in tqdm(trainloader):
+        for data, labels in tqdm(train_loader):
             # Transfer Data to GPU if available
             if torch.cuda.is_available():
                 data, labels = data.cuda(), labels.cuda()
@@ -81,12 +151,12 @@ def process(model, trainloader, validloader, epochs, min_valid_loss):
             # Calculate Loss, number of misclassified images by the model
             train_loss += loss.item()
 
-        print(f'Epoch {e+1} \t\t Training Loss: {train_loss / len(trainloader)}')
+        print(f'Epoch {e+1} \t\t Training Loss: {train_loss / len(train_loader)}')
 
         # Compute the loss on the validation set
         valid_loss = 0.0
         model.eval()     # Optional when not using Model Specific layer
-        for data, labels in validloader:
+        for data, labels in valid_loader:
             # Transfer Data to GPU if available
             if torch.cuda.is_available():
                 data, labels = data.cuda(), labels.cuda()
@@ -98,7 +168,7 @@ def process(model, trainloader, validloader, epochs, min_valid_loss):
             # Calculate Loss, number of misclassified images by the model on the validation set
             valid_loss += loss.item()
 
-        print(f'\t\t\t Validation Loss: {valid_loss / len(validloader)}')
+        print(f'\t\t\t Validation Loss: {valid_loss / len(valid_loader)}')
         
         # Check to see if the optimal model can be updated
         min_loss = update_optimal_model(model, min_valid_loss, valid_loss)
@@ -107,52 +177,10 @@ def process(model, trainloader, validloader, epochs, min_valid_loss):
         curr_lr = optimizer.param_groups[0]['lr']
         print(f'\t\t\t LR: {curr_lr}')
 
-        if e < 9:
-            scheduler1.step(valid_loss/len(validloader))
-        else:
-            scheduler2.step(valid_loss/len(validloader))
-
-def main(): 
-
-    epochs = 50
-    min_valid_loss = np.inf
-
-    ######################################################
-
-    print("Spliting the dataset...")
-    digits = [1,2,4,7,8]
-    digit_index = []
-    labels = []
-    subset_idx = []
-    train_data_th = datasets.MNIST(root='./datasets', download=True, train=True, transform=ToTensor())
-    test_data_th = datasets.MNIST(root='./datasets', download=True, train=False)
-
-    # for i in digits:
-    idx_1 = 1*(train_data_th.targets == 1).nonzero().flatten().tolist()
-    idx_2 = 1*(train_data_th.targets == 2).nonzero().flatten().tolist()
-    idx_4 = 1*(train_data_th.targets == 4).nonzero().flatten().tolist()
-    idx_7 = 1*(train_data_th.targets == 7).nonzero().flatten().tolist()
-    idx_8 = 1*(train_data_th.targets == 8).nonzero().flatten().tolist()
-
-    subset_idx = idx_1+idx_2+idx_4+idx_7+idx_8
-    # print(len(subset_idx))
-
-    train_data_sub = Subset(train_data_th, subset_idx)      # pytorch dataset
-    for i in range(len(train_data_sub)):
-        labels.append(train_data_sub[i][1])
-
-    labels = torch.tensor(labels)
-
-    train_loader = DataLoader(train_data_sub, batch_size=len(train_data_sub))
-    train_data = next(iter(train_loader))[0].numpy().reshape([-1,28*28]).astype(np.float32)
-    train_data_norm = (train_data / 255)
-    train_data = TensorDataset(torch.from_numpy(train_data_norm), labels)
-    train_loader = DataLoader(train_data, batch_size=len(train_data), shuffle=True)
-
-    print("Initialize the network")
-    model = ReferenceNet()
-        
-    process(model, train_loader, valid_loader, epochs, min_valid_loss)
+        # if e < 9:
+        #     scheduler1.step(valid_loss/len(valid_loader))
+        # else:
+        scheduler2.step()
 
 if __name__== "__main__":
     main()
