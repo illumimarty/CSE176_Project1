@@ -1,70 +1,13 @@
 import torch
-#import visdom
-import numpy as np
 from torch import nn
 from tqdm import tqdm
-from torchvision import datasets
-from torchvision.transforms import ToTensor
-from torch.utils.data import DataLoader, random_split
-
-class PixelNet(nn.Module):
-    """THIS IS NOT LeNet5"""
-    def __init__(self):
-        super(PixelNet,self).__init__()
-        # Input layer, transform the image to 100 neurons 
-        self.fc1 = nn.Linear(28*28, 100)
-        # Hidden layer 1 -> 2, 100 neurons to 50 neurons
-        self.fc2 = nn.Linear(100, 50)
-        # Hidden layer 2 -> Output layer, 50 neurons to 10 ouput classes
-        self.fc3 = nn.Linear(50, 10)
-        # Defining the activation function as ReLu (consider using the softmax function, multi-class)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        # Flattens the image into an object of the following dimensions: (batch_size x 784)
-        x = x.view(-1,28*28)
-        #print(x.size())
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-class LeNet5():
-    """layer 1: convolution with 8 kernels of size 3x3 
-       layer 2: 2x2 sub-sampling 
-       layer 3: convolution with 25 kernels of size 5x5
-       layer 4: convolution with 84 kernels of size 4x4 
-       layer 5: 2x1 sub-sampling, classification layer"""
-
-    def __init__(self):
-        super(LeNet5,self).__init__()
-        self.fc1 = nn.linear(120, 84)
-        self.fc2 = nn.linear(84, 10)
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5)
-        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5)
-        self.conv3 = nn.Conv2d(in_channels=16, out_channels=120, kernel_size=5)
-
-        # Max pooling will activate 1the features with the most presence
-        # We can, try average pooling -  reflects the average of features (smooths image)
-        self.pool = nn.MaxPool2d(kernel_size=2)
-
-        # For a more modern approach use nn.ReLU()
-        self.tanh = nn.tanh()
-
-    def forward(self, x):
-        x = self.tanh(self.conv1(x))
-        x = self.pool(x)
-        x = self.tanh(self.conv2(x))
-        x = self.pool(x)
-        x = self.tanh(self.conv3(x))
-        x = self.pool(x)
-        x = torch.flatten(x)
-        x = self.tanh(self.fc1(x))
-        x = self.fc2(x)
-        return x
+import matplotlib.pyplot as plt
+from torch.utils.tensorboard import SummaryWriter
 
 def train_nn(model, criterion, optimizer, trainloader):
-    train_loss = 0.0
+    running_loss = 0.0
+    correct = 0
+    model.train()
     for data, labels in tqdm(trainloader):
         # Transfer Data to GPU if available
         if torch.cuda.is_available():
@@ -77,15 +20,24 @@ def train_nn(model, criterion, optimizer, trainloader):
         # Find the Loss
         loss = criterion(target,labels)
         # Calculate gradients
-        loss.backward()
+        loss.backward() 
         # Update Weights
         optimizer.step()
         # Calculate Loss, number of misclassified images by the model
-        train_loss += loss.item()
-    return train_loss
+        running_loss += loss.item() * data.size(0)
+
+        # Calculate number of correct classifications
+        pred = target.argmax(dim=1, keepdim=True)
+        correct += pred.eq(labels.view_as(pred)).sum().item()
+    
+    train_loss = running_loss / len(trainloader.dataset)
+    train_accuracy = 100.0 * correct / len(trainloader.dataset)
+
+    return train_loss, train_accuracy
 
 def validate_nn(model, criterion, validloader):
-    valid_loss = 0.0
+    running_loss = 0.0
+    correct = 0
     model.eval()     # Optional when not using Model Specific layer
     for data, labels in validloader:
         # Transfer Data to GPU if available
@@ -94,25 +46,34 @@ def validate_nn(model, criterion, validloader):
         
         # Forward Pass
         target = model(data)
-        # Find the Loss
+        # Find the Loss: The number of incorrectly predicted labels
         loss = criterion(target,labels)
-        # Calculate Loss, number of misclassified images by the model on the validation set
-        valid_loss += loss.item()
-    return valid_loss
+        # Calculate Loss
+        running_loss += loss.item() * data.size(0)
+        # Calculate number of correct classifications
+        pred = target.argmax(dim=1, keepdim=True)
+        correct += pred.eq(labels.view_as(pred)).sum().item()
+    
+    valid_loss = running_loss / len(validloader.dataset)
+    valid_accuracy = 100.0 * correct / len(validloader.dataset)
 
-def update_optimal_model(model, min_valid_loss, valid_loss):
+    return valid_loss, valid_accuracy
+
+def update_optimal_model(model, min_valid_loss, valid_loss, path):
     if min_valid_loss > valid_loss:
-        print(f'\t\t\t Observed Errors Decreased({min_valid_loss:.3f}--->{valid_loss:.3f}) \n\t\t\t Saving The Model')
+        print(f'\n\t\t ------------------------------------------------------------------------------------------- \n')
+        print(f'\t\t\t\t\t Observed Errors Decreased({min_valid_loss:.3f}--->{valid_loss:.3f}) \n\t\t\t\t\t Saving The Model')
         min_valid_loss = valid_loss
         
         # Saving State Dict
-        torch.save(model.state_dict(), 'saved_model.pth')
+        torch.save(model.state_dict(), path)
         return min_valid_loss
     else:
-        print(f'\t\t\t No decrease in observed errors')
+        print(f'\n\t\t ------------------------------------------------------------------------------------------- \n')
+        print(f'\t\t\t\t\t No decrease in observed errors')
         return min_valid_loss
 
-def process(model, trainloader, validloader, epochs, min_valid_loss):
+def process(version, model, trainloader, validloader, epochs, min_valid_loss):
     print("Checking GPU availability...")
     if torch.cuda.is_available():
         model = model.cuda()
@@ -126,51 +87,30 @@ def process(model, trainloader, validloader, epochs, min_valid_loss):
     # lr = Learning Rate
     optimizer = torch.optim.SGD(model.parameters(), lr = 0.01)
 
-    iterations = 0 # for visdom, currently unused
-    #min_valid_loss = np.inf
-
+    if version == "PixelNet":
+        path = "PixelNet.pth"
+        writer = SummaryWriter("runs/PixelNet")
+    elif version == "LeNet5":
+        path = "LeNet5.pth"
+        writer = SummaryWriter("runs/LeNet5")
     print("Begin training...")
+
     for e in range(epochs):
         # Train the model and compute the training loss
-        train_loss = train_nn(model, criterion, optimizer, trainloader)
-        print(f'Epoch {e+1} \t\t Training Loss: {train_loss / len(trainloader)}')
+        train_loss, train_accuracy = train_nn(model, criterion, optimizer, trainloader)
+        print(f'Epoch {e+1} \t\t Training Loss: {train_loss} \t\t Train Accuracy: {train_accuracy}')
+        writer.add_scalar('Training Loss', train_loss, e + 1)
+        writer.add_scalar('Training Accuracy', train_accuracy, e + 1)
 
         # Compute the loss on the validation set
-        valid_loss = validate_nn(model, criterion, validloader)
-        print(f'\t\t\t Validation Loss: {valid_loss / len(validloader)}')
+        valid_loss, valid_accuracy = validate_nn(model, criterion, validloader)
+        print(f'\t\t\t Validation Loss: {valid_loss} \t\t Validation Accuracy: {valid_accuracy}')
+        writer.add_scalar('Validation Loss', valid_loss, e + 1)
+        writer.add_scalar('Validation Accuracy', valid_accuracy, e + 1)
+
         
         # Check to see if the optimal model can be updated
-        min_loss = update_optimal_model(model, min_valid_loss, valid_loss)
+        min_loss = update_optimal_model(model, min_valid_loss, valid_loss, path)
         min_valid_loss = min_loss
-
-def main(): 
-
-    # Case 0 =  pixel_Net, Case 1 = LeNet5
-    case = 0
-
-    epochs = 5
-    iterations = 0  # for visdom, currently unused
-    min_valid_loss = np.inf
-
-    ######################################################
-
-    print("Spliting the dataset...")
-    train_set = datasets.MNIST(root='./data', train=True, download=True, transform=ToTensor())
-    test_set = datasets.MNIST(root='./data', train=False, download=True, transform=ToTensor())
-    train_set, valid_set = random_split(train_set,[50000,10000])
     
-    # DataLoaders are iterable data objects
-    trainloader = DataLoader(train_set, batch_size=128)
-    validloader = DataLoader(valid_set, batch_size=128)
-
-    print("Initialize the network")
-    if case == 0:
-        model = PixelNet()
-    
-    # elif case == 0:
-    #     model = LeNet5()
-
-    process(model, trainloader, validloader, epochs, min_valid_loss)
-    
-if __name__== "__main__":
-    main()
+    writer.close()
