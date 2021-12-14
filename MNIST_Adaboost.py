@@ -10,7 +10,7 @@ from sklearn.tree import DecisionTreeClassifier
 def main():
 
     print("Getting data...")
-    feature = "Pixel"       # Pixel or LeNet5
+    feature = "LeNet5"       # Pixel or LeNet5
     if feature == "Pixel":
         print(f'\t using Pixel features')
         MNIST = loadmat('datasets/MNIST.mat')
@@ -34,6 +34,7 @@ def main():
         
         X_train, X_valid = train_test_split(X_train, test_size = 0.16, train_size = 0.84, shuffle = True)
         y_train, y_valid = train_test_split(y_train, test_size = 0.16, train_size = 0.84, shuffle = True)
+        print(X_train)
 
     # print("Setting up the model..")
     # ada = AdaBoostClassifier(base_estimator=None,
@@ -57,23 +58,29 @@ def main():
     # MSE = loss / total
 
     print("Cross Validating...")
-    mean_err = []
-    mean_acc =[]
-    NE_range = [150, 250, 350]
-    LR_range = np.arange(0.1, 1.1, 0.1)
-    for i in LR_range:
-        ada = AdaBoostClassifier(base_estimator = DecisionTreeClassifier(max_depth = 5),
-                                 n_estimators=50,
-                                 learning_rate=i,
+    NE_range = [25, 50, 75, 100, 125, 300, 500]
+    LR_range = [0.0001, 0.001, 0.01, 0.1 , 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0]
+    MD_range = [1, 2, 3, 4, 5, 6, 7, 8]
+    for i in NE_range:
+        ada = AdaBoostClassifier(base_estimator = DecisionTreeClassifier(max_depth = 3),
+                                 n_estimators=i,
+                                 learning_rate=0.3,
                                  algorithm='SAMME.R',
                                  random_state=None)
         model = ada.fit(X_train, y_train)
-        cv_score = cross_val_score(model, X_valid, y_valid, n_jobs = 6)
-        cv_err = 1 - cv_score
-        mean_err.append(cv_err.mean())
-        mean_acc.append(cv_score.mean())
+        preds = ada.predict(X_valid)
 
-        print(f'Learning Rate = {i} | Average Error: {cv_err.mean()} | Average Accuracy: {cv_score.mean()}')
+        loss = 0
+        total = 0
+        for j in range(len(y_valid)):
+            total += 1
+            if y_valid[j] != preds[j]:
+                loss += 1
+        
+        MSE = loss / total
+        acc = ada.score(X_valid, y_valid)
+        train_err = ada.score(X_train, y_train)
+        print(f'n_estimators = {i} | Error: {MSE} | Accuracy: {acc} | Train Accuracy: {train_err}')
 
     # print("Plotting Average accuracy vs # of trees...")
     # plt.plot(NE_range, mean_err,
