@@ -1,4 +1,5 @@
 import numpy as np
+from clean import *
 from torch import nn
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, random_split
@@ -49,18 +50,30 @@ def main():
                                            transforms.Normalize((0.5,), (0.5,))])
 
     print("Spliting the dataset...")
-    #LeNet5 = loadmat('datasets/MNIST-LeNet5.mat')
-    train_set = datasets.MNIST(root='./data', train=True, download=True, transform=padding)
-    test_set = datasets.MNIST(root='./data', train=False, download=True, transform=padding)
-    train_set, valid_set = random_split(train_set,[50000,10000])
-    print(train_set])
-    # DataLoaders are iterable data objects
-    trainloader = DataLoader(train_set, batch_size=128)
-    validloader = DataLoader(valid_set, batch_size=128)
+    lenet5 = loadmat('datasets/MNIST-LeNet5.mat')
+    # print(lenet5)
+    x_train, y_train, x_test, y_test = extractMNISTmini(lenet5, 'train_fea', 'train_gnd', 'test_fea', 'test_gnd')
 
-    print("Initialize the network")
-    model = LeNet5()
-    print(train_set[1][1])
+    # train_set = datasets.MNIST(root='./data', train=True, download=True, transform=padding)
+    # test_set = datasets.MNIST(root='./data', train=False, download=True, transform=padding)
+
+
+
+    digits = np.array([1,2,4,7,8]) + 1
+    x_train, y_train = datasetByDigitList(digits, x_train, y_train)
+    print(x_train.shape)
+    print(y_train.shape)
+    
+
+    # train_set, valid_set = random_split(train_set,[50000,10000])
+    # print([train_set])
+    # # DataLoaders are iterable data objects
+    # trainloader = DataLoader(train_set, batch_size=128)
+    # validloader = DataLoader(valid_set, batch_size=128)
+
+    # print("Initialize the network")
+    # model = LeNet5()
+    # print(train_set[1][1])
     
     # process(version, model, trainloader, validloader, epochs, min_valid_loss)
     
