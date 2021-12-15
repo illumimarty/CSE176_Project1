@@ -14,25 +14,31 @@ from scipy.io import loadmat
 class LeNet5(nn.Module):
     def __init__(self):
         super(LeNet5,self).__init__()
-        self.fc1 = nn.Linear(500, 5)
-        self.fc2 = nn.Linear(5, 5)
+        self.fc1 = nn.Linear(50*5*5, 500)
+        self.fc2 = nn.Linear(500, 5)
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=20, kernel_size=5)
-        self.conv2 = nn.Conv2d(in_channels=20, out_channels=500, kernel_size=5)
+        self.conv2 = nn.Conv2d(in_channels=20, out_channels=50, kernel_size=5)
 
         # Max pooling will activate 1the features with the most presence
         # We can, try average pooling -  reflects the average of features (smooths image)
         self.pool = nn.MaxPool2d(kernel_size=2)
 
         # For a more modern approach use nn.ReLU()
+        # Softmax generally works best for multi-class systems
         self.tanh = nn.Tanh()
 
     def forward(self, x):
+        # Layer 1
         x = self.tanh(self.conv1(x))
         x = self.pool(x)
+        # Layer 2
         x = self.tanh(self.conv2(x))
         x = self.pool(x)
+        # Flatten the data
         x = x.reshape(x.shape[0], -1)
+        # Layer 3
         x = self.tanh(self.fc1(x))
+        # Layer 4
         x = self.fc2(x)
         return x
 
@@ -53,16 +59,15 @@ def main():
     train_set = datasets.MNIST(root='./data', train=True, download=True, transform=padding)
     test_set = datasets.MNIST(root='./data', train=False, download=True, transform=padding)
     train_set, valid_set = random_split(train_set,[50000,10000])
-    print(train_set])
+
     # DataLoaders are iterable data objects
     trainloader = DataLoader(train_set, batch_size=128)
     validloader = DataLoader(valid_set, batch_size=128)
 
     print("Initialize the network")
     model = LeNet5()
-    print(train_set[1][1])
     
-    # process(version, model, trainloader, validloader, epochs, min_valid_loss)
+    process(version, model, trainloader, validloader, epochs, min_valid_loss)
     
 if __name__== "__main__":
     main()
